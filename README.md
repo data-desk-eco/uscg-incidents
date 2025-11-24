@@ -5,7 +5,7 @@ Interactive notebook displaying priority incidents from the US Coast Guard Natio
 ## Data Source
 
 **US Coast Guard National Response Center FOIA Files**
-- URL: https://nrc.uscg.mil/FOIAFiles/
+- URL: https://nrc.uscg.mil/
 - Format: Multi-sheet Excel workbook (CY25.xlsx = Calendar Year 2025)
 - Updates: Daily
 
