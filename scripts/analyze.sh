@@ -3,7 +3,14 @@ set -euo pipefail
 
 echo "Analyzing priority incidents with Claude..."
 
-# Export incidents to CSV for Claude analysis
+# Get last analysis timestamp (default to epoch if file doesn't exist)
+last_analysis="1970-01-01 00:00:00"
+if [ -f data/last_analysis.txt ]; then
+    last_analysis=$(cat data/last_analysis.txt)
+fi
+echo "Last analysis: $last_analysis"
+
+# Export only incidents newer than last analysis
 duckdb data/data.duckdb -csv -c "
 select
     SEQNOS,
@@ -26,12 +33,20 @@ select
     damage_amount,
     waterway_closed
 from priority_incidents
+where DATE_TIME_RECEIVED > '$last_analysis'::timestamp
 order by DATE_TIME_RECEIVED desc
 " > data/incidents_for_analysis.csv
 
 # Get count (subtract 1 for header row)
 count=$(($(wc -l < data/incidents_for_analysis.csv) - 1))
-echo "Analyzing $count incidents..."
+echo "Found $count new incidents since last analysis"
+
+# Skip if no new incidents
+if [ "$count" -le 0 ]; then
+    echo "No new incidents to analyze, skipping"
+    rm -f data/incidents_for_analysis.csv
+    exit 0
+fi
 
 # Run Claude analysis - outputs directly to data/summaries.json via Write tool
 # Match media repo pattern exactly
@@ -68,6 +83,10 @@ EOF
 else
     echo "No summaries to update"
 fi
+
+# Update last analysis timestamp
+date -u '+%Y-%m-%d %H:%M:%S' > data/last_analysis.txt
+echo "Updated last analysis timestamp"
 
 # Cleanup temporary files
 rm -f data/incidents_for_analysis.csv data/summaries.json
