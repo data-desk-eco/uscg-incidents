@@ -10,10 +10,7 @@ data/CY25.xlsx
 
 # Temporary analysis files
 data/incidents_for_analysis.json
-data/analysis_prompt.txt
-data/claude_summaries.json
-data/claude_raw.txt
-data/summaries_clean.json
+data/summaries.json
 
 # OS files
 .DS_Store
