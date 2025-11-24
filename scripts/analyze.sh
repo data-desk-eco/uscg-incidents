@@ -76,7 +76,7 @@ else
     echo "No summaries to update"
 fi
 
-# Cleanup temporary files
+# Cleanup temporary files (keep analysis_log.md for debugging)
 rm -f data/incidents_for_analysis.json data/summaries.json
 
 echo "Analysis complete!"
