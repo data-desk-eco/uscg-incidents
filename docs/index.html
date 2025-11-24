@@ -55,7 +55,7 @@
       const details = [formatDate(i.date), location(i), i.type, flags(i)].filter(Boolean).join(" / ");
       display(html`<p>
         <strong>${i.company}</strong>
-        <span style="opacity: 0.7; font-size: 0.9em;"> / ${details}</span><br>
+        <span style="opacity: 0.85; font-size: 0.9em;"> / ${details}</span><br>
         ${i.analysis || ""}
       </p>`);
     }
