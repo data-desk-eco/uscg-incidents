@@ -1,5 +1,7 @@
 # USCG Incident Analysis
 
+**Be quick — complete this task in under 3 minutes.**
+
 **Your task:**
 1. Read `data/incidents_for_analysis.csv` — USCG National Response Center incidents from the last 30 days
 2. **Filter** to only the incidents that would be newsworthy for journalists covering environmental and industrial incidents

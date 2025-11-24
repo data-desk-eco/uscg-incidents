@@ -51,7 +51,7 @@ fi
 # Run Claude analysis - outputs directly to data/summaries.json via Write tool
 # Match media repo pattern exactly
 echo "Running Claude analysis..."
-claude -p PROMPT.md --print --output-format json --dangerously-skip-permissions --setting-sources user > /dev/null 2>&1 || true
+claude -p PROMPT.md --max-turns 30 --print --output-format json --dangerously-skip-permissions --setting-sources user > /dev/null 2>&1 || true
 echo "Claude analysis complete"
 
 # Validate JSON output
