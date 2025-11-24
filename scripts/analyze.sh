@@ -3,8 +3,8 @@ set -euo pipefail
 
 echo "Analyzing priority incidents with Claude..."
 
-# Export priority incidents to JSON for Claude analysis
-duckdb data/data.duckdb -json -c "
+# Export incidents to CSV for Claude analysis
+duckdb data/data.duckdb -csv -c "
 select
     SEQNOS,
     DATE_TIME_RECEIVED,
@@ -29,12 +29,11 @@ select
     priority_score
 from priority_incidents
 order by priority_score, DATE_TIME_RECEIVED desc
-limit 50
-" > data/incidents_for_analysis.json
+" > data/incidents_for_analysis.csv
 
-# Get count
-count=$(jq length data/incidents_for_analysis.json)
-echo "Analyzing $count priority incidents..."
+# Get count (subtract 1 for header row)
+count=$(($(wc -l < data/incidents_for_analysis.csv) - 1))
+echo "Analyzing $count incidents..."
 
 # Run Claude analysis - outputs directly to data/summaries.json via Write tool
 # Match media repo pattern exactly
@@ -45,7 +44,7 @@ echo "Claude analysis complete"
 # Validate JSON output
 if [ ! -f data/summaries.json ] || ! jq -e '.' data/summaries.json > /dev/null 2>&1; then
     echo "Invalid or missing JSON from Claude, skipping summary update"
-    rm -f data/incidents_for_analysis.json data/summaries.json
+    rm -f data/incidents_for_analysis.csv data/summaries.json
     exit 0
 fi
 
@@ -72,7 +71,7 @@ else
     echo "No summaries to update"
 fi
 
-# Cleanup temporary files (keep analysis_log.md for debugging)
-rm -f data/incidents_for_analysis.json data/summaries.json
+# Cleanup temporary files
+rm -f data/incidents_for_analysis.csv data/summaries.json
 
 echo "Analysis complete!"
