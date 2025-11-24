@@ -4,8 +4,6 @@ docs/.observable
 # Dependencies
 node_modules
 
-# Auto-downloaded from main repo (kept fresh by CI)
-CLAUDE.md
 
 # Raw data (downloaded fresh each run)
 data/CY25.xlsx
