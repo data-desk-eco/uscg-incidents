@@ -1,0 +1,21 @@
+# Build output
+docs/.observable
+
+# Dependencies
+node_modules
+
+# Auto-downloaded from main repo (kept fresh by CI)
+CLAUDE.md
+
+# Raw data (downloaded fresh each run)
+data/CY25.xlsx
+
+# Temporary analysis files
+data/incidents_for_analysis.json
+data/analysis_prompt.txt
+data/claude_summaries.json
+data/claude_raw.txt
+data/summaries_clean.json
+
+# OS files
+.DS_Store

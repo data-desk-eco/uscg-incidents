@@ -1,0 +1,63 @@
+<!doctype html>
+<notebook theme="midnight">
+  <title>USCG incidents</title>
+
+  <script id="header" type="text/markdown">
+    # USCG incidents
+
+    Incidents reported to the US Coast Guard's [National Response Center](https://nrc.uscg.mil/FOIAFiles/), filtering by a simple SQL query and reviewed daily by Claude Sonnet 4.5.
+  </script>
+
+  <script id="incidents-query" output="incidents" type="application/sql" database="../data/data.duckdb" hidden>
+    select
+      DATE_TIME_RECEIVED as date,
+      coalesce(RESPONSIBLE_COMPANY, 'Unknown') as company,
+      coalesce(incident_city, '') as city,
+      coalesce(incident_state, '') as state,
+      incident_type as type,
+      claude_summary as analysis,
+      description,
+      any_fatalities = 'Y' as has_fatalities,
+      any_injuries = 'Y' as has_injuries,
+      any_evacuations = 'Y' as has_evacuations
+    from priority_incidents
+    where claude_summary is not null
+    order by priority_score, DATE_TIME_RECEIVED desc
+    limit 100
+  </script>
+
+  <script id="search" type="module">
+    const searched = view(Inputs.search(incidents, {placeholder: "Search..."}));
+  </script>
+
+  <script type="text/markdown">
+    ---
+  </script>
+
+  <script id="list" type="module">
+    function formatDate(d) {
+      return new Date(d).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'});
+    }
+
+    function flags(i) {
+      const f = [];
+      if (i.has_fatalities) f.push("fatal");
+      if (i.has_injuries) f.push("injuries");
+      if (i.has_evacuations) f.push("evacuations");
+      return f.length ? f.join(", ") : null;
+    }
+
+    function location(i) {
+      return [i.city, i.state].filter(Boolean).join(", ") || null;
+    }
+
+    for (const i of searched) {
+      const details = [formatDate(i.date), location(i), i.type, flags(i)].filter(Boolean).join(" / ");
+      display(html`<p>
+        <strong>${i.company}</strong>
+        <span style="opacity: 0.7; font-size: 0.9em;"> / ${details}</span><br>
+        ${i.analysis || ""}
+      </p>`);
+    }
+  </script>
+</notebook>
