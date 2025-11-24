@@ -24,11 +24,9 @@ select
     any_evacuations,
     number_evacuated,
     damage_amount,
-    waterway_closed,
-    media_interest,
-    priority_score
+    waterway_closed
 from priority_incidents
-order by priority_score, DATE_TIME_RECEIVED desc
+order by DATE_TIME_RECEIVED desc
 " > data/incidents_for_analysis.csv
 
 # Get count (subtract 1 for header row)
