@@ -37,8 +37,9 @@ count=$(jq length data/incidents_for_analysis.json)
 echo "Analyzing $count priority incidents..."
 
 # Run Claude analysis - outputs directly to data/summaries.json via Write tool
+# Use --setting-sources user to ignore CLAUDE.md project instructions
 echo "Running Claude analysis..."
-claude -p scripts/ANALYZE_PROMPT.md --print --output-format json --dangerously-skip-permissions > data/claude_output.txt 2>&1 || true
+claude -p scripts/ANALYZE_PROMPT.md --print --output-format json --dangerously-skip-permissions --setting-sources user > data/claude_output.txt 2>&1 || true
 echo "Claude output:"
 cat data/claude_output.txt
 echo "---"
