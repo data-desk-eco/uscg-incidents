@@ -1,4 +1,4 @@
-.PHONY: build preview data clean
+.PHONY: build preview etl data clean
 
 build:
 	yarn build
@@ -6,6 +6,7 @@ build:
 preview:
 	yarn preview
 
+etl: data  # No heavy ETL step, just alias to data
 data:
 	@./scripts/download.sh
 	@./scripts/build_database.sh
