@@ -53,21 +53,24 @@
         top: 0;
       }
       
-      figure.full-width {
-        width: 100%;
+      /* Override Observable's 640px max-width for full-width elements */
+      figure.full-width, figcaption.full-width, p.full-width {
+        max-width: none;
+      }
+
+      figure.full-width figcaption {
+        margin-top: 10px;
       }
 
       /* Hero image styles */
       figure.hero {
         max-width: 100%;
-        aspect-ratio: 3 / 1;
-        overflow: hidden;
         margin: 0 0 2rem 0;
       }
 
       figure.hero img {
         width: 100%;
-        height: 100%;
+        aspect-ratio: 3 / 1;
         object-fit: cover;
         object-position: center 40%;
       }
