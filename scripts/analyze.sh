@@ -14,7 +14,8 @@ echo "Last analysis: $last_analysis"
 duckdb data/data.duckdb -csv -c "
 select
     SEQNOS,
-    DATE_TIME_RECEIVED,
+    incident_date,
+    referenced_seqnos,
     RESPONSIBLE_COMPANY,
     incident_city,
     incident_state,
@@ -33,8 +34,8 @@ select
     damage_amount,
     waterway_closed
 from priority_incidents
-where DATE_TIME_RECEIVED > '$last_analysis'::timestamp
-order by DATE_TIME_RECEIVED desc
+where incident_date > '$last_analysis'::timestamp
+order by incident_date desc
 " > data/incidents_for_analysis.csv
 
 # Get count (subtract 1 for header row)

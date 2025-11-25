@@ -72,11 +72,29 @@ left join incident_details id on rc.SEQNOS = id.SEQNOS
 group by rc.SEQNOS, rc.DATE_TIME_RECEIVED, rc.RESPONSIBLE_COMPANY,
          rc.RESPONSIBLE_STATE, rc.SOURCE;
 
+-- Add incident_date: resolve update references to find original incident date
+alter table enriched_incidents add column incident_date date;
+alter table enriched_incidents add column ref varchar;
+update enriched_incidents set
+    incident_date = DATE_TIME_RECEIVED,
+    ref = regexp_extract(description, 'REPORT[S]?\s*(?:#|NUMBER)?\s*(\d{6,7})', 1);
+
+-- Iteratively resolve chained updates (handles update -> update -> ... -> original)
+update enriched_incidents as e set incident_date = o.incident_date
+from enriched_incidents o where TRY_CAST(e.ref AS INT) = o.SEQNOS and o.incident_date < e.incident_date;
+update enriched_incidents as e set incident_date = o.incident_date
+from enriched_incidents o where TRY_CAST(e.ref AS INT) = o.SEQNOS and o.incident_date < e.incident_date;
+update enriched_incidents as e set incident_date = o.incident_date
+from enriched_incidents o where TRY_CAST(e.ref AS INT) = o.SEQNOS and o.incident_date < e.incident_date;
+update enriched_incidents as e set incident_date = o.incident_date
+from enriched_incidents o where TRY_CAST(e.ref AS INT) = o.SEQNOS and o.incident_date < e.incident_date;
+
 -- Light pre-filter: exclude obvious noise, let Claude do the real filtering
 create or replace table priority_incidents as
 select
     SEQNOS,
-    DATE_TIME_RECEIVED,
+    incident_date,
+    ref as referenced_seqnos,
     RESPONSIBLE_COMPANY,
     incident_city,
     incident_state,
@@ -108,7 +126,7 @@ select
     null::varchar as claude_summary
 from enriched_incidents
 where incident_cause != 'TRESPASSER'
-order by priority_score, DATE_TIME_RECEIVED desc;
+order by priority_score, incident_date desc;
 
 -- Summary stats
 create or replace table summary_stats as
@@ -119,8 +137,8 @@ select
     sum(case when any_fatalities = 'Y' then 1 else 0 end) as incidents_with_fatalities,
     sum(case when any_evacuations = 'Y' then 1 else 0 end) as incidents_with_evacuations,
     sum(case when waterway_closed = 'Y' then 1 else 0 end) as waterway_closures,
-    min(DATE_TIME_RECEIVED) as earliest_date,
-    max(DATE_TIME_RECEIVED) as latest_date
+    min(incident_date) as earliest_date,
+    max(incident_date) as latest_date
 from enriched_incidents;
 
 -- Drop intermediate tables
