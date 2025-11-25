@@ -3,6 +3,16 @@ set -euo pipefail
 
 echo "Building DuckDB database from USCG NRC data..."
 
+# Preserve existing Claude summaries before rebuilding
+if [ -f data/data.duckdb ]; then
+    echo "Exporting existing Claude summaries..."
+    duckdb data/data.duckdb -csv -c "
+        SELECT SEQNOS, claude_summary
+        FROM priority_incidents
+        WHERE claude_summary IS NOT NULL
+    " > data/existing_summaries.csv 2>/dev/null || true
+fi
+
 rm -f data/data.duckdb
 
 duckdb data/data.duckdb << 'EOF'
@@ -140,5 +150,20 @@ EOF
 
 # Remove raw Excel file
 rm -f data/CY25.xlsx
+
+# Restore existing Claude summaries
+if [ -f data/existing_summaries.csv ]; then
+    summary_count=$(($(wc -l < data/existing_summaries.csv) - 1))
+    if [ "$summary_count" -gt 0 ]; then
+        echo "Restoring $summary_count existing Claude summaries..."
+        duckdb data/data.duckdb << 'RESTORE'
+UPDATE priority_incidents
+SET claude_summary = es.claude_summary
+FROM (SELECT * FROM read_csv('data/existing_summaries.csv', header=true)) es
+WHERE priority_incidents.SEQNOS = es.SEQNOS;
+RESTORE
+    fi
+    rm -f data/existing_summaries.csv
+fi
 
 echo "Database built successfully!"
