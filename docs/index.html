@@ -10,7 +10,7 @@
 
   <script id="incidents-query" output="incidents" type="application/sql" database="../data/data.duckdb" hidden>
     select
-      DATE_TIME_RECEIVED as date,
+      incident_date as date,
       coalesce(RESPONSIBLE_COMPANY, 'Unknown') as company,
       coalesce(incident_city, '') as city,
       coalesce(incident_state, '') as state,
@@ -22,7 +22,7 @@
       any_evacuations = 'Y' as has_evacuations
     from priority_incidents
     where claude_summary is not null
-    order by priority_score, DATE_TIME_RECEIVED desc
+    order by priority_score, incident_date desc
     limit 100
   </script>
 
