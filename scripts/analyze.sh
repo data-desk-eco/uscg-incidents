@@ -66,18 +66,11 @@ summary_count=$(jq length data/summaries.json)
 if [ "$summary_count" -gt 0 ]; then
     echo "Updating database with $summary_count summaries..."
     duckdb data/data.duckdb << 'EOF'
-create or replace table claude_summaries as
-select
-    cast(seqnos as varchar) as incident_seqnos,
-    summary
-from read_json('data/summaries.json');
+INSERT INTO claude_summaries SELECT cast(seqnos as varchar), summary FROM read_json('data/summaries.json')
+ON CONFLICT (incident_seqnos) DO UPDATE SET summary = EXCLUDED.summary;
 
-update priority_incidents
-set claude_summary = cs.summary
-from claude_summaries cs
-where cast(priority_incidents.SEQNOS as varchar) = cs.incident_seqnos;
-
-drop table claude_summaries;
+UPDATE priority_incidents SET claude_summary = cs.summary
+FROM claude_summaries cs WHERE cast(priority_incidents.SEQNOS as varchar) = cs.incident_seqnos;
 EOF
     echo "Database updated with Claude summaries"
 else
