@@ -3,8 +3,6 @@ set -euo pipefail
 
 echo "Building DuckDB database from USCG NRC data..."
 
-rm -f data/data.duckdb
-
 duckdb data/data.duckdb << 'EOF'
 install spatial;
 load spatial;
@@ -131,6 +129,13 @@ drop table incident_commons;
 drop table materials;
 drop table incident_details;
 drop table recent_calls;
+
+-- Persistent table for Claude summaries (survives rebuilds)
+CREATE TABLE IF NOT EXISTS claude_summaries (incident_seqnos VARCHAR PRIMARY KEY, summary VARCHAR);
+
+-- Restore summaries from persistent table
+UPDATE priority_incidents SET claude_summary = cs.summary
+FROM claude_summaries cs WHERE CAST(priority_incidents.SEQNOS AS VARCHAR) = cs.incident_seqnos;
 
 -- Show counts
 select 'enriched_incidents' as table_name, count(*) as row_count from enriched_incidents
