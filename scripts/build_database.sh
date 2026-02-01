@@ -3,22 +3,44 @@ set -euo pipefail
 
 echo "Building DuckDB database from USCG NRC data..."
 
-duckdb data/data.duckdb << 'EOF'
+# Build union queries from available xlsx files
+XLSX_FILES=(data/CY*.xlsx)
+if [ ${#XLSX_FILES[@]} -eq 0 ]; then
+    echo "Error: No CY*.xlsx files found in data/"
+    exit 1
+fi
+
+# Build SQL fragments for each table by unioning all available files
+make_union() {
+    local layer=$1
+    local first=true
+    for f in "${XLSX_FILES[@]}"; do
+        if $first; then first=false; else echo "union all"; fi
+        echo "select * from st_read('$f', layer='$layer', open_options=['HEADERS=FORCE'])"
+    done
+}
+
+CALLS_SQL=$(make_union CALLS)
+COMMONS_SQL=$(make_union INCIDENT_COMMONS)
+MATERIALS_SQL=$(make_union MATERIAL_INVOLVED)
+DETAILS_SQL=$(make_union INCIDENT_DETAILS)
+
+duckdb data/data.duckdb << EOF
 install spatial;
 load spatial;
 
--- Load sheets from Excel file
+-- Load sheets from all available year files
 create or replace table calls as
-select * from st_read('data/CY25.xlsx', layer='CALLS', open_options=['HEADERS=FORCE']);
+$CALLS_SQL;
 
 create or replace table incident_commons as
-select * from st_read('data/CY25.xlsx', layer='INCIDENT_COMMONS', open_options=['HEADERS=FORCE']);
+$COMMONS_SQL;
 
 create or replace table materials as
-select * from st_read('data/CY25.xlsx', layer='MATERIAL_INVOLVED', open_options=['HEADERS=FORCE']);
+$MATERIALS_SQL;
 
 create or replace table incident_details as
-select * from st_read('data/CY25.xlsx', layer='INCIDENT_DETAILS', open_options=['HEADERS=FORCE']);
+$DETAILS_SQL;
 
 -- Get incidents from last 30 days
 create or replace table recent_calls as
@@ -161,7 +183,7 @@ union all
 select 'priority_incidents', count(*) from priority_incidents;
 EOF
 
-# Remove raw Excel file
-rm -f data/CY25.xlsx
+# Remove raw Excel files
+rm -f data/CY*.xlsx
 
 echo "Database built successfully!"
