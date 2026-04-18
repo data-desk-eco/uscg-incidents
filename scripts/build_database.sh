@@ -15,7 +15,7 @@ make_union() {
     local layer=$1
     local first=true
     for f in "${XLSX_FILES[@]}"; do
-        if $first; then first=false; else echo "union all"; fi
+        if $first; then first=false; else echo "union all by name"; fi
         echo "select * from st_read('$f', layer='$layer', open_options=['HEADERS=FORCE'])"
     done
 }
