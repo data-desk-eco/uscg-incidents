@@ -55,7 +55,7 @@ $MATERIALS_SQL;
 create or replace table incident_details as
 $DETAILS_SQL;
 
--- Get incidents from last 30 days
+-- Get incidents from the last 3 months
 create or replace table recent_calls as
 select distinct
     c.SEQNOS,
@@ -68,7 +68,7 @@ select distinct
     c.RESPONSIBLE_STATE,
     c.SOURCE
 from calls c
-where c.DATE_TIME_RECEIVED::DATE >= current_date - interval 30 day
+where c.DATE_TIME_RECEIVED::DATE >= current_date - interval 3 month
   and c.CALLTYPE = 'INC'
 order by c.DATE_TIME_RECEIVED desc;
 
@@ -182,6 +182,7 @@ select * replace (materials::varchar as materials, amounts::varchar as amounts, 
        false as reviewed
 from priority_incidents;
 $ARCHIVE_SQL
+delete from incidents where incident_date < current_date - interval 3 month;
 copy (select * from incidents order by incident_date desc, SEQNOS) to 'data/incidents.csv' (header);
 
 -- Publish final tables

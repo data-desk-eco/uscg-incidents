@@ -3,7 +3,7 @@
 **Be quick — complete this task in under 3 minutes.**
 
 **Your task:**
-1. Read `data/incidents_for_analysis.csv` — USCG National Response Center incidents from the last 30 days
+1. Read `data/incidents_for_analysis.csv` — recent USCG National Response Center incidents not yet reviewed
 2. **Filter** to only the incidents that would be newsworthy for journalists covering environmental and industrial incidents
 3. For each newsworthy incident, write a short summary in plain English (1-2 sentences)
 4. Write results to `data/summaries.json` using the Write tool

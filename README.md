@@ -47,8 +47,8 @@ make build
 
 Two artifacts are committed and refreshed on every run:
 
-- **`data/incidents.csv`** — a running archive of every incident seen by the pipeline, one row per NRC report (`SEQNOS`). New reports enter via a rolling 30-day window and never leave. Columns: incident metadata (date, company, location, type, cause), materials/amounts/units, impact fields (injuries, fatalities, evacuations, damage, waterway closures), plus `claude_summary` (set only for incidents Claude judged newsworthy) and `reviewed` (set once Claude has seen the incident, so each is analyzed exactly once).
-- **`data/data.duckdb`** — rebuilt fresh each run, queried by the notebook at build time. Tables: `incidents` (the running archive above), `priority_incidents` (the current 30-day window), `summary_stats` (headline counts for the window).
+- **`data/incidents.csv`** — an archive of every incident seen by the pipeline over the last three months, one row per NRC report (`SEQNOS`). Older rows are pruned each run, keeping the database a steady size. Columns: incident metadata (date, company, location, type, cause), materials/amounts/units, impact fields (injuries, fatalities, evacuations, damage, waterway closures), plus `claude_summary` (set only for incidents Claude judged newsworthy) and `reviewed` (set once Claude has seen the incident, so each is analyzed exactly once).
+- **`data/data.duckdb`** — rebuilt fresh each run, queried by the notebook at build time. Tables: `incidents` (the archive above), `priority_incidents` (the current window, rebuilt from source), `summary_stats` (headline counts for the window).
 
 ## Structure
 

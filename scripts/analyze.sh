@@ -28,7 +28,7 @@ COPY (
         damage_amount,
         waterway_closed
     from incidents
-    where not reviewed and incident_date >= current_date - interval 30 day
+    where not reviewed
     order by incident_date desc
 ) TO 'data/incidents_for_analysis.csv' (HEADER, DELIMITER ',');
 "
