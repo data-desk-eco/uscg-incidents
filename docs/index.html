@@ -5,12 +5,17 @@
   <script id="header" type="text/markdown">
     # USCG incidents
 
-    Incidents reported to the US Coast Guard's [National Response Center](https://nrc.uscg.mil/FOIAFiles/), filtered by a simple SQL query and reviewed bi-weekly by Claude Sonnet 4.5.
+    Incidents reported to the US Coast Guard's [National Response Center](https://nrc.uscg.mil/FOIAFiles/), filtered by a simple SQL query and reviewed daily by Claude.
   </script>
 
   <script id="incidents-query" output="incidents" type="application/sql" database="../data/data.duckdb" hidden>
     select
       incident_date as date,
+      SEQNOS as seqnos,
+      incident_cause as cause,
+      materials,
+      amounts,
+      units,
       coalesce(RESPONSIBLE_COMPANY, 'Unknown') as company,
       coalesce(incident_city, '') as city,
       coalesce(incident_state, '') as state,
@@ -20,10 +25,10 @@
       any_fatalities = 'Y' as has_fatalities,
       any_injuries = 'Y' as has_injuries,
       any_evacuations = 'Y' as has_evacuations
-    from priority_incidents
+    from incidents
     where claude_summary is not null
-    order by priority_score, incident_date desc
-    limit 100
+    order by incident_date desc, priority_score
+    limit 1000
   </script>
 
   <script id="search" type="module">
@@ -51,6 +56,17 @@
       return [i.city, i.state].filter(Boolean).join(", ") || null;
     }
 
+    function source(i) {
+      const strip = s => s && s.replace(/^\[|\]$/g, "").replace(/'/g, "");
+      const meta = [["Report", i.seqnos], ["Cause", i.cause], ["Materials", strip(i.materials)], ["Amounts", strip(i.amounts)], ["Units", strip(i.units)]]
+        .filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join(" / ");
+      return html`<details style="margin: -0.5em 0 1.5em; font-size: 0.85em; opacity: 0.75;">
+        <summary style="cursor: pointer;">Source report</summary>
+        <div style="margin: 0.5em 0;">${meta}</div>
+        <div style="white-space: pre-wrap;">${i.description}</div>
+      </details>`;
+    }
+
     for (const i of searched) {
       const details = [formatDate(i.date), location(i), i.type, flags(i)].filter(Boolean).join(" / ");
       display(html`<p>
@@ -58,6 +74,7 @@
         <span style="opacity: 0.7; font-size: 0.9em;"> / ${details}</span><br>
         ${i.analysis || ""}
       </p>`);
+      display(source(i));
     }
   </script>
 </notebook>

@@ -6,10 +6,11 @@ node_modules
 
 
 # Raw data (downloaded fresh each run)
-data/CY25.xlsx
+data/CY*.xlsx
 
 # Temporary analysis files
 data/incidents_for_analysis.json
+data/incidents_for_analysis.csv
 data/summaries.json
 
 # OS files

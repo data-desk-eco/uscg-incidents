@@ -20,14 +20,27 @@ make_union() {
     done
 }
 
+# merge any previously archived incidents (committed as csv so the record persists across runs)
+ARCHIVE_SQL=""
+if [ -f data/incidents.csv ]; then
+ARCHIVE_SQL="
+update incidents set claude_summary = a.claude_summary, reviewed = a.reviewed
+from read_csv('data/incidents.csv') a where incidents.SEQNOS = a.SEQNOS;
+insert into incidents select * from read_csv('data/incidents.csv') a
+where a.SEQNOS not in (select SEQNOS from incidents);"
+fi
+
 CALLS_SQL=$(make_union CALLS)
 COMMONS_SQL=$(make_union INCIDENT_COMMONS)
 MATERIALS_SQL=$(make_union MATERIAL_INVOLVED)
 DETAILS_SQL=$(make_union INCIDENT_DETAILS)
 
-duckdb data/data.duckdb << EOF
+# work in memory, publish only final tables to a fresh committed db
+rm -f data/data.duckdb
+duckdb << EOF
 install spatial;
 load spatial;
+attach 'data/data.duckdb' as db;
 
 -- Load sheets from all available year files
 create or replace table calls as
@@ -163,24 +176,25 @@ select
     max(incident_date) as latest_date
 from enriched_incidents;
 
--- Drop intermediate tables
-drop table calls;
-drop table incident_commons;
-drop table materials;
-drop table incident_details;
-drop table recent_calls;
+-- persistent archive: fresh window plus everything seen on previous runs
+create or replace table incidents as
+select * replace (materials::varchar as materials, amounts::varchar as amounts, units::varchar as units),
+       false as reviewed
+from priority_incidents;
+$ARCHIVE_SQL
+copy (select * from incidents order by incident_date desc, SEQNOS) to 'data/incidents.csv' (header);
 
--- Persistent table for Claude summaries (survives rebuilds)
-CREATE TABLE IF NOT EXISTS claude_summaries (incident_seqnos VARCHAR PRIMARY KEY, summary VARCHAR);
-
--- Restore summaries from persistent table
-UPDATE priority_incidents SET claude_summary = cs.summary
-FROM claude_summaries cs WHERE CAST(priority_incidents.SEQNOS AS VARCHAR) = cs.incident_seqnos;
+-- Publish final tables
+create table db.incidents as from incidents;
+create table db.priority_incidents as from priority_incidents;
+create table db.summary_stats as from summary_stats;
 
 -- Show counts
 select 'enriched_incidents' as table_name, count(*) as row_count from enriched_incidents
 union all
-select 'priority_incidents', count(*) from priority_incidents;
+select 'priority_incidents', count(*) from priority_incidents
+union all
+select 'incidents (archive)', count(*) from incidents;
 EOF
 
 # Remove raw Excel files

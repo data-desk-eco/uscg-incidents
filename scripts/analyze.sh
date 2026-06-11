@@ -3,7 +3,7 @@ set -euo pipefail
 
 echo "Analyzing priority incidents with Claude..."
 
-# Export all incidents for analysis (use JSON to handle multiline descriptions)
+# Export incidents not yet reviewed by Claude (use CSV quoting to handle multiline descriptions)
 duckdb data/data.duckdb -c "
 COPY (
     select
@@ -27,7 +27,8 @@ COPY (
         number_evacuated,
         damage_amount,
         waterway_closed
-    from priority_incidents
+    from incidents
+    where not reviewed and incident_date >= current_date - interval 30 day
     order by incident_date desc
 ) TO 'data/incidents_for_analysis.csv' (HEADER, DELIMITER ',');
 "
@@ -55,21 +56,19 @@ if [ ! -f data/summaries.json ] || ! jq -e '.' data/summaries.json > /dev/null 2
     exit 0
 fi
 
-# Update database with summaries
-summary_count=$(jq length data/summaries.json)
-if [ "$summary_count" -gt 0 ]; then
-    echo "Updating database with $summary_count summaries..."
-    duckdb data/data.duckdb << 'EOF'
-INSERT INTO claude_summaries SELECT cast(seqnos as varchar), summary FROM read_json('data/summaries.json')
-ON CONFLICT (incident_seqnos) DO UPDATE SET summary = EXCLUDED.summary;
+# Store summaries, mark everything exported as reviewed, persist the archive
+echo "Updating database with $(jq length data/summaries.json) summaries..."
+duckdb data/data.duckdb << 'EOF'
+UPDATE incidents SET claude_summary = j.summary
+FROM read_json('data/summaries.json', columns={seqnos: 'bigint', summary: 'varchar'}) j
+WHERE incidents.SEQNOS = j.seqnos;
 
-UPDATE priority_incidents SET claude_summary = cs.summary
-FROM claude_summaries cs WHERE cast(priority_incidents.SEQNOS as varchar) = cs.incident_seqnos;
+UPDATE incidents SET reviewed = true
+WHERE SEQNOS IN (SELECT SEQNOS FROM read_csv('data/incidents_for_analysis.csv'));
+
+COPY (SELECT * FROM incidents ORDER BY incident_date DESC, SEQNOS) TO 'data/incidents.csv' (HEADER);
 EOF
-    echo "Database updated with Claude summaries"
-else
-    echo "No summaries to update"
-fi
+echo "Database updated with Claude summaries"
 
 # Cleanup temporary files
 rm -f data/incidents_for_analysis.csv data/summaries.json

@@ -43,6 +43,13 @@ make preview
 make build
 ```
 
+## Data
+
+Two artifacts are committed and refreshed on every run:
+
+- **`data/incidents.csv`** — a running archive of every incident seen by the pipeline, one row per NRC report (`SEQNOS`). New reports enter via a rolling 30-day window and never leave. Columns: incident metadata (date, company, location, type, cause), materials/amounts/units, impact fields (injuries, fatalities, evacuations, damage, waterway closures), plus `claude_summary` (set only for incidents Claude judged newsworthy) and `reviewed` (set once Claude has seen the incident, so each is analyzed exactly once).
+- **`data/data.duckdb`** — rebuilt fresh each run, queried by the notebook at build time. Tables: `incidents` (the running archive above), `priority_incidents` (the current 30-day window), `summary_stats` (headline counts for the window).
+
 ## Structure
 
 ```
@@ -62,7 +69,7 @@ uscg-incidents/
 
 ## GitHub Actions
 
-The workflow runs daily at 8am UTC:
+The workflow runs daily at 6am UTC:
 1. Downloads fresh USCG data
 2. Processes incidents and runs Claude analysis
 3. Commits updated database
