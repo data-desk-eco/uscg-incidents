@@ -16,7 +16,11 @@ make_union() {
     local first=true
     for f in "${XLSX_FILES[@]}"; do
         if $first; then first=false; else echo "union all by name"; fi
-        echo "select * from st_read('$f', layer='$layer', open_options=['HEADERS=FORCE'])"
+        # NRC's export leaves unbalanced quotes in free-text description fields, so
+        # some rows spill prose into SEQNOS and the column reads back as varchar.
+        # try_cast nulls those strays (they never join) and keeps SEQNOS one type
+        # across years, which a bare `select *` union does not guarantee.
+        echo "select * replace (try_cast(SEQNOS as bigint) as SEQNOS) from st_read('$f', layer='$layer', open_options=['HEADERS=FORCE'])"
     done
 }
 
@@ -36,8 +40,10 @@ MATERIALS_SQL=$(make_union MATERIAL_INVOLVED)
 DETAILS_SQL=$(make_union INCIDENT_DETAILS)
 
 # work in memory, publish only final tables to a fresh committed db
+# -bail stops at the first error; without it one bad statement cascades into a
+# wall of "table does not exist" that buries the actual cause
 rm -f data/data.duckdb
-duckdb << EOF
+duckdb -bail << EOF
 install spatial;
 load spatial;
 attach 'data/data.duckdb' as db;
