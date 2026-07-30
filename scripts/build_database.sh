@@ -3,7 +3,10 @@ set -euo pipefail
 
 echo "Building DuckDB database from USCG NRC data..."
 
-# Build union queries from available xlsx files
+# Build union queries from available xlsx files. nullglob makes the guard below
+# work: without it an unmatched glob survives as a literal one-element array and
+# the count is never zero, so a failed download reached st_read as a bad path.
+shopt -s nullglob
 XLSX_FILES=(data/CY*.xlsx)
 if [ ${#XLSX_FILES[@]} -eq 0 ]; then
     echo "Error: No CY*.xlsx files found in data/"
