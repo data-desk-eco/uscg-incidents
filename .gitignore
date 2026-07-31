@@ -15,3 +15,8 @@ data/summaries.json
 
 # OS files
 .DS_Store
+
+# agent exhaust — never commit
+*.log
+.playwright-mcp/
+.claude/multi_agent.py
